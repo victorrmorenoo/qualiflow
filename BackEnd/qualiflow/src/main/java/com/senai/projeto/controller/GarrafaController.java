@@ -8,6 +8,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import com.senai.projeto.enums.Turno;
 import com.senai.projeto.enums.LinhaSopro;
 import com.senai.projeto.enums.Periodo;
+import com.senai.projeto.enums.StatusQualidade;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -28,11 +29,14 @@ public class GarrafaController {
             @RequestParam(name = "turno", required = false) Turno turno,
             @RequestParam(name = "linha", required = false) LinhaSopro linha,
             @RequestParam(name = "periodo", required = false) Periodo periodo,
+            @RequestParam(name = "status", required = false) StatusQualidade status,
+
             @RequestParam(name = "dataInicio", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+
             @RequestParam(name = "dataFim", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim){
-        return service.listar(turno, linha, periodo, dataInicio, dataFim);
+        return service.listar(turno, linha, status, periodo, dataInicio, dataFim);
     }
 
     @GetMapping("/{id}")
