@@ -1,0 +1,267 @@
+
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Qualiflow · Controle de qualidade</title>
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+
+<body>
+
+<template id="brand">
+<div class="brand">
+<svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke-linecap="round">
+<path d="M27 41A18 18 0 1 1 40 27" stroke="#9b5cff" stroke-width="6"/>
+<path d="M15 25c9-7 13 16 30 17" stroke="#7567ff" stroke-width="6"/>
+<path d="M26 21c7-3 12 2 18 6" stroke="#c084fc" stroke-width="4"/>
+</svg>
+Qualiflow
+</div>
+</template>
+
+<!-- LOGIN -->
+<section id="login" class="login">
+<aside>
+<div data-brand></div>
+
+<h1>Qualidade na<br>linha de produção</h1>
+
+<p>
+Inspeção de garrafas PET de 2 litros na Planta 2,
+responsável pelo sopro e pela moldagem.
+</p>
+
+<svg class="art" viewBox="0 0 390 170" aria-hidden="true">
+<rect width="390" height="170" rx="18" fill="#17152c"/>
+<path d="M25 135H365M25 95H365M25 55H365" stroke="#30294f"/>
+<path d="M28 120L78 91 125 105 175 66 225 83 275 51 360 30V145H28Z" fill="#9b5cff" opacity=".25"/>
+<path d="M28 120L78 91 125 105 175 66 225 83 275 51 360 30"
+fill="none" stroke="#a78bfa" stroke-width="4" stroke-linejoin="round"/>
+</svg>
+</aside>
+
+<div class="entry">
+<div>
+<span class="tag">Protótipo interativo</span>
+<h2>Acesso de demonstração</h2>
+<p class="muted">Escolha um perfil para explorar o painel.</p>
+
+<label for="role">Perfil de acesso</label>
+<select id="role">
+<option>Gestor</option>
+<option>Funcionário</option>
+</select>
+
+<button class="primary" id="enter">
+Entrar
+</button>
+</div>
+</div>
+</section>
+
+<!-- DASHBOARD -->
+<div id="dashboard" hidden>
+<div class="top">
+<div>
+<div class="actions">
+<button type="button" id="menuToggle" class="menu-toggle"
+aria-label="Abrir menu" aria-expanded="false"
+aria-controls="sidebar">
+<svg viewBox="0 0 24 24" fill="none"
+stroke="currentColor" stroke-width="2"
+stroke-linecap="round" aria-hidden="true">
+<path d="M4 6h16M4 12h16M4 18h16"/>
+</svg>
+</button>
+<div data-brand></div>
+</div>
+
+<div class="actions">
+<span id="profile" class="tag"></span>
+<button id="signup" class="primary">+ Cadastrar funcionário</button>
+<button id="exit">Sair</button>
+</div>
+</div>
+</div>
+
+<div id="workspace" class="workspace menu-closed">
+<aside id="sidebar" class="sidebar" hidden>
+<span class="eyebrow">Monitoramento</span>
+<nav aria-label="Menu lateral">
+<button data-view="overview" aria-current="page">Visão geral</button>
+<button data-view="measurements">Medições</button>
+<button data-view="inspections">Inspeções</button>
+<button data-view="costs">Custos e desperdício</button>
+</nav>
+<small>Planta 2 · Linha PET 2 L</small>
+</aside>
+
+<main>
+<div id="notice" class="notice" role="status" hidden></div>
+
+<div class="heading">
+<div>
+<div class="eyebrow">Planta 2 · Sopro e moldagem</div>
+<h1 id="viewTitle">Controle de qualidade</h1>
+<p id="viewDescription" class="muted">
+Acompanhe as medições e os desvios das garrafas PET de 2 L.
+</p>
+</div>
+</div>
+
+<section class="panel filters" aria-label="Filtros do painel">
+<div class="tools">
+<label>Por tempo
+<select id="period">
+<option value="1">Hoje</option>
+<option value="7" selected>Últimos 7 dias</option>
+<option value="30">Últimos 30 dias</option>
+<option value="custom">Intervalo personalizado</option>
+</select>
+</label>
+
+<label>Por turno
+<select id="shift">
+<option value="">Todos os turnos</option>
+<option>Manhã</option>
+<option>Tarde</option>
+<option>Noite</option>
+</select>
+</label>
+
+<label>Por linha de produção
+<select id="line">
+<option value="">Todas as linhas</option>
+<option>Sopro_01</option>
+<option>Sopro_02</option>
+<option>Sopro_03</option>
+<option>Sopro_04</option>
+</select>
+</label>
+
+<label>Por conformidade
+<select id="statusFilter">
+<option value="">Todas as situações</option>
+<option>Conforme</option>
+<option>Atenção</option>
+<option>Fora do padrão</option>
+</select>
+</label>
+
+<div id="customDates" class="tools" hidden>
+<label>Data inicial<input id="from" type="date"></label>
+<label>Data final<input id="to" type="date"></label>
+</div>
+
+<button id="clearFilters" type="button">Limpar filtros</button>
+</div>
+<p id="filterError" class="filter-error" role="alert" hidden></p>
+</section>
+
+<section class="cards" id="cards"
+data-section="overview" aria-label="Indicadores"></section>
+
+<section id="costCards" class="cards cost-grid"
+data-section="overview costs" aria-label="Custos do período"></section>
+
+<div class="charts" data-section="overview measurements">
+<section class="panel">
+<header>
+<div>
+<h2>Tendência das medições</h2>
+<p id="limits" class="muted"></p>
+</div>
+<select id="metric" aria-label="Medição"></select>
+</header>
+<svg id="plot" class="plot" viewBox="0 0 600 245" role="img"></svg>
+<div class="legend">
+<span class="key" style="--c:var(--accent)">Medição</span>
+<span class="key" style="--c:var(--crit)">Limites de aceitação</span>
+</div>
+</section>
+
+<section class="panel">
+<h2>Resultado das inspeções</h2>
+<p class="muted">Distribuição no período selecionado</p>
+<div class="ring-wrap">
+<div id="ring" class="ring">
+<div>
+<strong id="rate"></strong>
+<small>Conformes</small>
+</div>
+</div>
+</div>
+<div id="legend" class="legend"></div>
+</section>
+</div>
+
+<section class="panel" data-section="overview inspections">
+<header>
+<div>
+<h2>Inspeções recentes</h2>
+<p class="muted">Amostras ilustrativas da linha de produção</p>
+</div>
+</header>
+<div class="scroll">
+<table>
+<thead>
+<tr>
+<th>Amostra</th>
+<th>Dia</th>
+<th>Turno</th>
+<th>Linha</th>
+<th>Medição</th>
+<th>Valor</th>
+<th>Situação</th>
+</tr>
+</thead>
+<tbody id="rows"></tbody>
+</table>
+</div>
+</section>
+
+<section class="panel cost-detail" data-section="costs" hidden>
+<h2>Como os valores são calculados</h2>
+<p id="costBreakdown"></p>
+<p class="muted">
+A simulação usa o preço fixo de R$ 8,40 por kg de PET.
+O gasto com material descartado já está incluído no gasto total com PET.
+</p>
+<p class="muted">
+Os custos usam o período, o turno e a linha selecionados.
+O filtro de conformidade se aplica às medições e inspeções,
+pois os custos representam a produção e as inspeções mostram amostras.
+</p>
+</section>
+
+<footer>Qualiflow · Dados simulados para demonstração</footer>
+</main>
+</div>
+</div>
+
+<!-- CADASTRO -->
+<dialog id="registration">
+<form id="form">
+<h2>Cadastrar funcionário</h2>
+<p class="muted">Simulação de cadastro pela gestão.</p>
+
+<label>Nome completo
+<input name="nome" required maxlength="100">
+</label>
+
+<label>E-mail profissional
+<input name="email" type="email" required maxlength="150">
+</label>
+
+<div class="actions">
+<button type="button" id="cancel">Cancelar</button>
+<button class="primary">Cadastrar</button>
+</div>
+</form>
+</dialog>
+
+<script src="js/script.js"></script>
+</body>
+</html>
