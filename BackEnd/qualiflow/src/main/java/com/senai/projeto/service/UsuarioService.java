@@ -60,5 +60,16 @@ public class UsuarioService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "E-mail ou senha inválidos"));
     }
 
+    public Usuario buscarUsuarioLogado(Long usuarioId){
+        if (usuarioId == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "Faça login para continuar"
+            );
+        }
+
+        return usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sessão inválida"));
+    }
+
 
 }
