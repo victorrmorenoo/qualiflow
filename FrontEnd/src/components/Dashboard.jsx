@@ -1,5 +1,5 @@
-
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { buscarGarrafas } from '../services/api'
 
 const metrics = [
   ['Massa', 'g', 35, 55, 48],
@@ -89,7 +89,7 @@ const data = production.flatMap((batch) =>
     const id =
       1001 +
       (batch.day * shifts.length * lines.length + batch.group) *
-        metrics.length +
+      metrics.length +
       index
 
     return {
@@ -145,13 +145,15 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
   const [statusFilter, setStatusFilter] = useState('')
   const [from, setFrom] = useState(dates[23])
   const [to, setTo] = useState(dates[29])
-  const [metric, setMetric] = useState('0')
 
   const [nonconformities, setNonconformities] = useState([])
   const [defect, setDefect] = useState('')
   const [defectLine, setDefectLine] = useState('Sopro_01')
   const [defectShift, setDefectShift] = useState('Manhã')
   const [defectDescription, setDefectDescription] = useState('')
+  const [garrafas, setGarrafas] = useState([])
+  const [erroDados, setErroDados] = useState('')
+  const [carregando, setCarregando] = useState(true)
 
   const custom = period === 'custom'
 
@@ -161,6 +163,64 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
   const valid = Boolean(
     startDate && endDate && startDate <= endDate
   )
+
+  useEffect(() => {
+    let ativo = true
+
+    if (!valid) {
+      return () => {
+        ativo = false
+      }
+    }
+
+    const periodos = {
+      '1': 'HOJE',
+      '7': 'ULTIMOS_7_DIAS',
+      '30': 'ULTIMOS_30_DIAS',
+      custom: 'PERSONALIZADO',
+    }
+
+    const situacoes = {
+      Conforme: 'Conforme',
+      Atenção: 'Revisao',
+      'Fora do padrão': 'Reprovado',
+    }
+
+    async function carregar() {
+      setCarregando(true)
+      setErroDados('')
+
+      try {
+        const resultado = await buscarGarrafas({
+          periodo: periodos[period],
+          turno: shift,
+          linha: line,
+          status: situacoes[statusFilter],
+          ...(custom ? { dataInicio: from, dataFim: to } : {}),
+        })
+
+        if (ativo) {
+          setGarrafas(resultado)
+        }
+      } catch (erro) {
+        if (ativo) {
+          setGarrafas([])
+          setErroDados(erro.message)
+        }
+      } finally {
+        if (ativo) {
+          setCarregando(false)
+        }
+      }
+    }
+
+    carregar()
+
+    return () => {
+      ativo = false
+    }
+  }, [period, shift, line, statusFilter, custom, from, to, valid])
+
 
   const visibleProduction = useMemo(
     () =>
@@ -189,19 +249,21 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
     [valid, startDate, endDate, shift, line, statusFilter]
   )
 
-  const counts = statuses.map((_, i) =>
-    visible.filter((row) => row.status === i).length
+  const statusDaApi = ['Conforme', 'Revisao', 'Reprovado']
+
+  const counts = statusDaApi.map(status =>
+    garrafas.filter(garrafa => garrafa.status_qualidade === status).length
   )
 
-  const rate = visible.length
-    ? (counts[0] / visible.length) * 100
+  const rate = garrafas.length
+    ? (counts[0] / garrafas.length) * 100
     : 0
 
-  const split = visible.length
-    ? ((counts[0] + counts[1]) / visible.length) * 100
+  const split = garrafas.length
+    ? ((counts[0] + counts[1]) / garrafas.length) * 100
     : 0
 
-  const percentage = visible.length
+  const percentage = garrafas.length
     ? `${format(rate, 1)}%`
     : '—'
 
@@ -224,7 +286,7 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
     })
 
   const cards = [
-    ['Medições registradas', visible.length, ''],
+    ['Garrafas registradas', garrafas.length, ''],
     ['Conformidade', percentage, ''],
     ['Em atenção', counts[1], 'warn'],
     ['Fora do padrão', counts[2], 'error'],
@@ -253,75 +315,92 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
     ],
   ]
 
-  const [metricName, unit, lo, hi] = metrics[Number(metric)]
+  const metricName = 'Massa'
+  const unit = 'g'
 
-  const chartDates = dates.filter(
-    (date) => valid && date >= startDate && date <= endDate
-  )
+  // Limites que já estavam definidos no protótipo.
+  // Confirme esses valores com os requisitos do projeto.
+  const lo = 35
+  const hi = 55
 
-  const trend = chartDates.flatMap((date, i) => {
-    const points = visible.filter(
-      (row) => row.index === Number(metric) && row.date === date
+  const trend = [...garrafas]
+    .sort((a, b) =>
+      a.data_hora.localeCompare(b.data_hora) ||
+      a.id_registro - b.id_registro
     )
+    .map((garrafa, i) => ({
+      id: garrafa.id_registro,
+      date: garrafa.data_hora,
+      time: Date.parse(`${garrafa.data_hora}Z`),
+      i,
+      value: garrafa.massa_g,
+      status: statusDaApi.indexOf(garrafa.status_qualidade),
+    }))
 
-    return points.length
-      ? [{
-          date,
-          i,
-          value:
-            points.reduce((sum, row) => sum + row.value, 0) /
-            points.length,
-        }]
-      : []
-  })
+  const chartDates = trend.map(ponto => ponto.date)
 
   const pad = (hi - lo) * 0.12
 
-  const min = trend.length
-    ? Math.min(lo, ...trend.map((row) => row.value)) - pad
-    : lo - pad
+  const min = trend.reduce(
+    (menor, ponto) => Math.min(menor, ponto.value),
+    lo
+  ) - pad
 
-  const max = trend.length
-    ? Math.max(hi, ...trend.map((row) => row.value)) + pad
-    : hi + pad
+  const max = trend.reduce(
+    (maior, ponto) => Math.max(maior, ponto.value),
+    hi
+  ) + pad
 
-  const x = (i) =>
-    chartDates.length === 1
+  const primeiroHorario = trend[0]?.time
+  const ultimoHorario = trend[trend.length - 1]?.time
+
+  const x = i =>
+    primeiroHorario === ultimoHorario
       ? 315
-      : 58 + (i * 515) / (chartDates.length - 1)
+      : 58 + (
+        (trend[i].time - primeiroHorario) /
+        (ultimoHorario - primeiroHorario)
+      ) * 515
 
-  const y = (value) => 200 - ((value - min) * 178) / (max - min)
+  const y = valor => 200 - ((valor - min) * 178) / (max - min)
 
-  const trendPoints = trend.map((row) => ({
-    ...row,
-    x: x(row.i),
-    y: y(row.value),
-    status: classify(row.value, lo, hi),
+  const trendPoints = trend.map(ponto => ({
+    ...ponto,
+    x: x(ponto.i),
+    y: y(ponto.value),
   }))
 
-  const trendLines = trendPoints.slice(1).map((point, i) => {
-    const previous = trendPoints[i]
-
-    if (previous.i + 1 !== point.i) return null
-
-    return (
-      <line
-        key={`line-${i}`}
-        x1={previous.x}
-        y1={previous.y}
-        x2={point.x}
-        y2={point.y}
-        stroke="#a78bfa"
-        strokeWidth="3"
-        strokeLinecap="round"
-        className="chart-glow"
-      />
+  const caminhoGrafico = trendPoints
+    .map((ponto, i) =>
+      `${i === 0 ? 'M' : 'L'} ${ponto.x} ${ponto.y}`
     )
-  })
+    .join(' ')
 
-  const recent = [...visible]
-    .sort((a, b) => b.day - a.day || b.status - a.status)
+  const passoMarcadores = Math.max(
+    1,
+    Math.ceil(trendPoints.length / 100)
+  )
+
+  const marcadores = trendPoints.filter((_, i) =>
+    i % passoMarcadores === 0 || i === trendPoints.length - 1
+  )
+
+  const recent = [...garrafas]
+    .sort((a, b) =>
+      b.data_hora.localeCompare(a.data_hora) ||
+      b.id_registro - a.id_registro
+    )
     .slice(0, 12)
+    .map(garrafa => ({
+      id: garrafa.id_registro,
+      date: garrafa.data_hora,
+      shift: garrafa.turno,
+      line: garrafa.linha_sopro,
+      name: 'Massa',
+      value: garrafa.massa_g,
+      unit: 'g',
+      status: statusDaApi.indexOf(garrafa.status_qualidade),
+    }))
 
   const reportCounts = statuses.map((_, i) =>
     data.filter(
@@ -466,6 +545,15 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
         )}
 
         <main className="dashboard-main">
+          {carregando ? (
+            <p role="status">Carregando garrafas...</p>
+          ) : erroDados ? (
+            <p role="alert">{erroDados}</p>
+          ) : (
+            <p role="status">
+              {garrafas.length} garrafas recebidas da API.
+            </p>
+          )}
           <div className="heading">
             <div>
               <div className="eyebrow">
@@ -595,21 +683,13 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
                   <div>
                     <h2>Tendência das medições</h2>
                     <p className="muted">
-                      Médias diárias · Faixa de aceitação de {format(lo)} a{' '}
+                      Uma medição por garrafa · Faixa de aceitação de {format(lo)} a{' '}
                       {format(hi)} {unit}
                     </p>
                   </div>
 
-                  <select
-                    value={metric}
-                    onChange={(e) => setMetric(e.target.value)}
-                    aria-label="Medição"
-                  >
-                    {metrics.map(([name], i) => (
-                      <option value={i} key={name}>
-                        {name}
-                      </option>
-                    ))}
+                  <select aria-label="Medição" value="massa" disabled>
+                    <option value="massa">Massa</option>
                   </select>
                 </header>
 
@@ -617,7 +697,7 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
                   className="plot"
                   viewBox="0 0 600 245"
                   role="img"
-                  aria-label={`Médias diárias de ${metricName}, em ${unit}`}
+                  aria-label={`Medições de ${metricName} por garrafa, em ${unit}`}
                 >
                   <defs>
                     <linearGradient
@@ -665,30 +745,36 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
                         </g>
                       ))}
 
-                      {trendLines}
+                      <path
+                        d={caminhoGrafico}
+                        fill="none"
+                        stroke="#a78bfa"
+                        strokeWidth="2"
+                        strokeLinejoin="round"
+                      />
 
-                      {trendPoints.map((point, i) => (
+                      {marcadores.map(point => (
                         <circle
-                          key={i}
+                          key={point.id}
                           cx={point.x}
                           cy={point.y}
                           r="4"
                           stroke={colors[point.status]}
                           strokeWidth="2"
                           fill="#111426"
-                          className="chart-glow"
                         >
                           <title>
-                            {shortDate(point.date)} · {format(point.value)} {unit}
+                            PET-{point.id} · {shortDate(point.date)}{' '}
+                            {point.date.slice(11, 16)} · {format(point.value)} {unit}
                           </title>
                         </circle>
                       ))}
 
                       {chartDates.map((date, i) =>
                         i % Math.ceil(chartDates.length / 8) === 0 ||
-                        i === chartDates.length - 1 ? (
+                          i === chartDates.length - 1 ? (
                           <text
-                            key={date}
+                            key={i}
                             x={x(i)}
                             y="225"
                             textAnchor="middle"
@@ -735,7 +821,7 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
                   <div
                     className="ring"
                     style={{
-                      background: visible.length
+                      background: garrafas.length
                         ? `conic-gradient(
                             ${colors[0]} 0 ${rate}%,
                             ${colors[1]} ${rate}% ${split}%,
@@ -800,13 +886,12 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
                           <td>{format(row.value)} {row.unit}</td>
                           <td>
                             <span
-                              className={`status ${
-                                row.status === 1
-                                  ? 'warn'
-                                  : row.status === 2
-                                    ? 'error'
-                                    : ''
-                              }`}
+                              className={`status ${row.status === 1
+                                ? 'warn'
+                                : row.status === 2
+                                  ? 'error'
+                                  : ''
+                                }`}
                             >
                               {statuses[row.status]}
                             </span>

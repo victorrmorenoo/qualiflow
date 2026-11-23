@@ -3,19 +3,25 @@ function RegistrationModal({ isOpen, onClose, onRegister }) {
     return null
   }
 
-  function cadastrar(event) {
+  async function cadastrar(event) {
     event.preventDefault()
 
-    const formData = new FormData(event.target)
+    const formulario = event.currentTarget
+    const formData = new FormData(formulario)
 
-    const funcionario = {
+    const usuario = {
       nome: formData.get('nome'),
+      sobrenome: formData.get('sobrenome'),
       email: formData.get('email'),
+      senha: formData.get('senha'),
+      cargo: formData.get('cargo'),
     }
 
-    onRegister(funcionario)
-
-    event.target.reset()
+    try {
+      await onRegister(usuario)
+    } catch (erro) {
+      alert(erro.message)
+    }
   }
 
   return (
@@ -25,14 +31,26 @@ function RegistrationModal({ isOpen, onClose, onRegister }) {
 
         <form onSubmit={cadastrar}>
           <label htmlFor="nome">
-            Nome completo
+            Nome
           </label>
 
           <input
             type="text"
             id="nome"
             name="nome"
-            placeholder="Digite o nome"
+            placeholder="Digite o nome do funcionário"
+            required
+          />
+
+          <label htmlFor="sobrenome">
+            Sobrenome
+          </label>
+
+          <input
+            type="text"
+            id="sobrenome"
+            name="sobrenome"
+            placeholder="Digite o sobrenome do funcionário"
             required
           />
 
@@ -47,6 +65,28 @@ function RegistrationModal({ isOpen, onClose, onRegister }) {
             placeholder="Digite o e-mail"
             required
           />
+
+          <label htmlFor="senha">
+            Senha
+          </label>
+
+          <input
+            type="password"
+            id="senha"
+            name="senha"
+            placeholder="Digite a senha"
+            required
+          />
+
+          <label htmlFor="cargo">
+            Cargo
+          </label>
+
+          <select id="cargo" name="cargo" required>
+            <option value="">Selecione o cargo</option>
+            <option value="GESTOR">Gestor</option>
+            <option value="FUNCIONARIO">Funcionário</option>
+          </select>
 
           <div className="modal-buttons">
             <button

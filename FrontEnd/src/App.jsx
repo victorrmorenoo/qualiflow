@@ -4,27 +4,44 @@ import './App.css'
 import Login from './components/Login'
 import Dashboard from './components/Dashboard'
 import RegistrationModal from './components/RegistrationModal'
+import {
+  fazerLogin,
+  buscarUsuarioLogado,
+  fazerLogout,
+  cadastrarUsuario
+} from './services/api'
 
 function App() {
   const [logado, setLogado] = useState(false)
   const [perfil, setPerfil] = useState('Gestor')
   const [modalAberto, setModalAberto] = useState(false)
 
-  function entrar(dados) {
-    console.log('Dados de login:', dados)
+  async function entrar(dados) {
+    try {
+      await fazerLogin(dados)
+      const usuario = await buscarUsuarioLogado()
 
-    
-    setPerfil('Gestor')
-    setLogado(true)
+      setPerfil(usuario.cargo === 'GESTOR' ? 'Gestor' : 'Funcionário')
+      setLogado(true)
+    } catch (erro) {
+      alert(erro.message)
+    }
   }
 
-  function sair() {
-    setLogado(false)
-    setModalAberto(false)
+  async function sair() {
+    try {
+      await fazerLogout()
+      setLogado(false)
+      setModalAberto(false)
+    } catch (erro) {
+      alert(erro.message)
+    }
   }
 
-  function cadastrarFuncionario(funcionario) {
-    alert(`Funcionário ${funcionario.nome} cadastrado!`)
+  async function cadastrarFuncionario(dados) {
+    const usuario = await cadastrarUsuario(dados)
+
+    alert(`Usuário ${usuario.nome} cadastrado!`)
     setModalAberto(false)
   }
 

@@ -816,6 +816,24 @@
   color: #77758f;
 }
 
+.modal select {
+  width: 100%;
+  padding: 12px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: #fff;
+}
+
+.modal select:focus {
+  border-color: var(--purple);
+  box-shadow: 0 0 8px #9b5cff40;
+}
+
+.modal select::placeholder {
+  color: #77758f;
+}
+
 .modal-buttons {
   display: flex;
   justify-content: flex-end;
