@@ -58,4 +58,17 @@ public class UsuarioController {
             sessao.invalidate();
         }
     }
+
+    @GetMapping("/usuarios/me")
+    public CadastroResponse usuarioLogado(@SessionAttribute(name = "usuarioId", required = false) Long usuarioId){
+        Usuario usuario = usuarioService.buscarUsuarioLogado(usuarioId);
+
+        return new CadastroResponse(
+                usuario.getId(),
+                usuario.getNome(),
+                usuario.getEmail(),
+                usuario.getCargo()
+        );
+    }
+
 }
