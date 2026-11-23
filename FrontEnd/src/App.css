@@ -1154,3 +1154,44 @@
   text-align: center;
   margin-top: 10px;
 }
+
+/* Preço por kg na estimativa de material */
+.cost-detail label[for="precoKg"] {
+  display: block;
+  margin: 20px 0 8px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.cost-detail #precoKg {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 240px;
+  min-height: 46px;
+  padding: 11px 14px;
+  border: 1px solid #40345f;
+  border-radius: 10px;
+  background: var(--surface-alt, #17152c);
+  color: var(--text, #fff);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  color-scheme: dark;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.cost-detail #precoKg:hover {
+  border-color: #8873b8;
+}
+
+.cost-detail #precoKg:focus {
+  outline: 2px solid var(--purple, #9b5cff);
+  outline-offset: 2px;
+  border-color: var(--purple, #9b5cff);
+  box-shadow: 0 0 0 4px #9b5cff20;
+}
+
+.cost-detail #precoKg:user-invalid {
+  border-color: #ec4899;
+}

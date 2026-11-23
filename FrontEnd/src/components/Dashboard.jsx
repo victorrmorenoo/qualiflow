@@ -1,22 +1,49 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { buscarGarrafas } from '../services/api'
 
-const metrics = [
-  ['Massa', 'g', 35, 55, 48],
-  ['Espessura do ombro', 'mm', 0.30, 0.55, 0.40],
-  ['Espessura do corpo', 'mm', 0.15, 0.45, 0.25],
-  ['Espessura dos pés', 'mm', 0.22, 0.60, 0.35],
-  ['Espessura central do fundo', 'mm', 1.30, 2, 1.5],
-  ['Rosca do gargalo', 'mm', 23.95, 24.45, 24.20],
-  ['Corpo do gargalo', 'mm', 27.15, 27.65, 27.40],
-  ['Altura', 'mm', 347, 361, 354],
-  ['Volume útil', 'mL', 1970, 2030, 1970],
-  ['Volume de transbordo', 'mL', 2040, 2095, 2065],
-]
-
-const offsets = [
-  0.05, 0.13, -0.08, 0.17, 0.02, -0.14, 0.22,
-  0.04, -0.05, 0.1, 0.03, 0.18, -0.10, 0.06,
+const medicoesApi = [
+  {
+    campo: 'massa_g',
+    nome: 'Massa',
+    unidade: 'g',
+    minimo: 35,
+    maximo: 55,
+  },
+  {
+    campo: 'espessura_corpo_mm',
+    nome: 'Espessura do corpo',
+    unidade: 'mm',
+    minimo: 0.15,
+    maximo: 0.45,
+  },
+  {
+    campo: 'espessura_ombro_mm',
+    nome: 'Espessura do ombro',
+    unidade: 'mm',
+    minimo: 0.30,
+    maximo: 0.55,
+  },
+  {
+    campo: 'diametro_gargalo_mm',
+    nome: 'Diâmetro do gargalo',
+    unidade: 'mm',
+    minimo: 23.95,
+    maximo: 24.45,
+  },
+  {
+    campo: 'altura_mm',
+    nome: 'Altura',
+    unidade: 'mm',
+    minimo: 347,
+    maximo: 361,
+  },
+  {
+    campo: 'volume_util_ml',
+    nome: 'Volume útil',
+    unidade: 'mL',
+    minimo: 1970,
+    maximo: 2030,
+  },
 ]
 
 const statuses = ['Conforme', 'Atenção', 'Fora do padrão']
@@ -28,13 +55,6 @@ const format = (value, digits = 2) =>
   Number(value).toLocaleString('pt-BR', {
     maximumFractionDigits: digits,
   })
-
-const classify = (value, lo, hi) =>
-  value < lo || value > hi
-    ? 2
-    : Math.min(value - lo, hi - value) <= (hi - lo) * 0.05
-      ? 1
-      : 0
 
 const shortDate = (date) =>
   `${date.slice(8, 10)}/${date.slice(5, 7)}`
@@ -57,53 +77,6 @@ const getDates = () => {
 
 const dates = getDates()
 
-const production = dates.flatMap((date, day) =>
-  shifts.flatMap((shift, i) =>
-    lines.map((line, j) => ({
-      date,
-      day,
-      shift,
-      line,
-      group: i * lines.length + j,
-      consumed: 37 + (day * 5 + i * 7 + j * 3) % 12,
-      discarded: (day + i * 2 + j * 3) % 3,
-    }))
-  )
-)
-
-const data = production.flatMap((batch) =>
-  metrics.map(([name, unit, lo, hi, target], index) => {
-    const center = target === lo ? (lo + hi) / 2 : target
-    const sample = (batch.day * 11 + batch.group * 13 + index * 7) % 41
-
-    const offset =
-      sample === 0
-        ? -0.72
-        : sample === 1
-          ? (hi - center) / (hi - lo) - 0.01
-          : offsets[sample % offsets.length]
-
-    const value =
-      Math.round((center + offset * (hi - lo)) * 100) / 100
-
-    const id =
-      1001 +
-      (batch.day * shifts.length * lines.length + batch.group) *
-      metrics.length +
-      index
-
-    return {
-      ...batch,
-      id,
-      index,
-      name,
-      unit,
-      value,
-      status: classify(value, lo, hi),
-    }
-  })
-)
-
 const views = {
   overview: [
     'Controle de qualidade',
@@ -117,21 +90,13 @@ const views = {
     'Inspeções',
     'Consulte as amostras recentes e filtre pela situação.',
   ],
-  nonconformities: [
-    'Não conformidades',
-    'Registre e acompanhe os defeitos encontrados nas garrafas.',
-  ],
-  lots: [
-    'Controle de lotes',
-    'Consulte a produção por lote, linha e turno.',
-  ],
   reports: [
     'Relatórios',
     'Acompanhe os resultados e indicadores da produção.',
   ],
   costs: [
-    'Custos e desperdício',
-    'Confira o gasto com matéria-prima e o custo do PET descartado.',
+    'Estimativa de material',
+    'Consulte a massa das garrafas inspecionadas e estime o custo do material.',
   ],
 }
 
@@ -145,15 +110,12 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
   const [statusFilter, setStatusFilter] = useState('')
   const [from, setFrom] = useState(dates[23])
   const [to, setTo] = useState(dates[29])
-
-  const [nonconformities, setNonconformities] = useState([])
-  const [defect, setDefect] = useState('')
-  const [defectLine, setDefectLine] = useState('Sopro_01')
-  const [defectShift, setDefectShift] = useState('Manhã')
-  const [defectDescription, setDefectDescription] = useState('')
   const [garrafas, setGarrafas] = useState([])
+  const [precoKg, setPrecoKg] = useState('8.40')
   const [erroDados, setErroDados] = useState('')
   const [carregando, setCarregando] = useState(true)
+
+  const [campoMedicao, setCampoMedicao] = useState('massa_g')
 
   const custom = period === 'custom'
 
@@ -222,33 +184,6 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
   }, [period, shift, line, statusFilter, custom, from, to, valid])
 
 
-  const visibleProduction = useMemo(
-    () =>
-      production.filter(
-        (row) =>
-          valid &&
-          row.date >= startDate &&
-          row.date <= endDate &&
-          (!shift || row.shift === shift) &&
-          (!line || row.line === line)
-      ),
-    [valid, startDate, endDate, shift, line]
-  )
-
-  const visible = useMemo(
-    () =>
-      data.filter(
-        (row) =>
-          valid &&
-          row.date >= startDate &&
-          row.date <= endDate &&
-          (!shift || row.shift === shift) &&
-          (!line || row.line === line) &&
-          (!statusFilter || statuses[row.status] === statusFilter)
-      ),
-    [valid, startDate, endDate, shift, line, statusFilter]
-  )
-
   const statusDaApi = ['Conforme', 'Revisao', 'Reprovado']
 
   const counts = statusDaApi.map(status =>
@@ -267,17 +202,25 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
     ? `${format(rate, 1)}%`
     : '—'
 
-  const consumed = visibleProduction.reduce(
-    (sum, row) => sum + row.consumed,
+  const massaKg = garrafas.reduce(
+    (total, garrafa) => total + garrafa.massa_g,
     0
-  )
+  ) / 1000
 
-  const discarded = visibleProduction.reduce(
-    (sum, row) => sum + row.discarded,
+  const massaDescartadaKg = garrafas.reduce(
+    (total, garrafa) => garrafa.status_qualidade === 'Reprovado'
+      ? total + garrafa.massa_g
+      : total,
     0
-  )
+  ) / 1000
 
-  const petPrice = 8.4
+  const precoValido = precoKg.trim() !== '' &&
+    Number.isFinite(Number(precoKg)) && Number(precoKg) >= 0
+
+  const custoEstimado = precoValido ? massaKg * Number(precoKg) : null
+  const custoDesperdicado = precoValido
+    ? massaDescartadaKg * Number(precoKg)
+    : null
 
   const brl = (value) =>
     value.toLocaleString('pt-BR', {
@@ -293,35 +236,29 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
   ]
 
   const costCards = [
-    [
-      'Gasto total com PET',
-      brl(consumed * petPrice),
-      `${format(consumed)} kg consumidos`,
-      '',
-    ],
-    [
-      'Custo do desperdício',
-      brl(discarded * petPrice),
-      `${format(discarded)} kg descartados`,
-      'error',
-    ],
-    [
-      'Taxa de desperdício',
-      consumed
-        ? `${format((discarded / consumed) * 100, 1)}%`
-        : '—',
-      'do PET consumido',
-      '',
-    ],
+    ['Massa das garrafas inspecionadas',
+      carregando || erroDados ? '—' : `${format(massaKg, 3)} kg`,
+      'Soma da massa no recorte filtrado', ''],
+    ['Custo estimado do material',
+      carregando || erroDados || custoEstimado === null ? '—' : brl(custoEstimado),
+      'Massa das amostras × preço informado por kg', ''],
+    ['Custo desperdiçado estimado',
+      carregando || erroDados || custoDesperdicado === null
+        ? '—'
+        : brl(custoDesperdicado),
+      `${format(massaDescartadaKg, 3)} kg de garrafas reprovadas`,
+      'error'],
   ]
+  const medicaoSelecionada = medicoesApi.find(
+    medicao => medicao.campo === campoMedicao
+  )
 
-  const metricName = 'Massa'
-  const unit = 'g'
-
-  // Limites que já estavam definidos no protótipo.
-  // Confirme esses valores com os requisitos do projeto.
-  const lo = 35
-  const hi = 55
+  const {
+    nome: metricName,
+    unidade: unit,
+    minimo: lo,
+    maximo: hi,
+  } = medicaoSelecionada
 
   const trend = [...garrafas]
     .sort((a, b) =>
@@ -333,7 +270,7 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
       date: garrafa.data_hora,
       time: Date.parse(`${garrafa.data_hora}Z`),
       i,
-      value: garrafa.massa_g,
+      value: garrafa[campoMedicao],
       status: statusDaApi.indexOf(garrafa.status_qualidade),
     }))
 
@@ -396,38 +333,15 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
       date: garrafa.data_hora,
       shift: garrafa.turno,
       line: garrafa.linha_sopro,
-      name: 'Massa',
-      value: garrafa.massa_g,
-      unit: 'g',
+      name: metricName,
+      value: garrafa[campoMedicao],
+      unit,
       status: statusDaApi.indexOf(garrafa.status_qualidade),
     }))
 
-  const reportCounts = statuses.map((_, i) =>
-    data.filter(
-      (row) =>
-        valid &&
-        row.date >= startDate &&
-        row.date <= endDate &&
-        (!shift || row.shift === shift) &&
-        (!line || row.line === line) &&
-        row.status === i
-    ).length
-  )
-
-  const reportTotal = reportCounts.reduce((sum, value) => sum + value, 0)
-
-  const reportPercentage = reportTotal
-    ? `${format((reportCounts[0] / reportTotal) * 100, 1)}%`
-    : '—'
-
-  const visibleNonconformities = nonconformities.filter(
-    (item) =>
-      (!shift || item.shift === shift) &&
-      (!line || item.line === line) &&
-      valid &&
-      item.date >= startDate &&
-      item.date <= endDate
-  )
+  const reportCounts = counts
+  const reportTotal = garrafas.length
+  const reportPercentage = percentage
 
   function clearFilters() {
     setPeriod('7')
@@ -436,27 +350,6 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
     setStatusFilter('')
     setFrom(dates[23])
     setTo(dates[29])
-  }
-
-  function registerNonconformity(event) {
-    event.preventDefault()
-
-    if (!defect || !defectDescription.trim()) return
-
-    const newRecord = {
-      id: Date.now(),
-      defect,
-      line: defectLine,
-      shift: defectShift,
-      description: defectDescription.trim(),
-      date: new Date().toISOString().slice(0, 10),
-    }
-
-    setNonconformities((previous) => [newRecord, ...previous])
-    setDefect('')
-    setDefectDescription('')
-    setDefectLine('Sopro_01')
-    setDefectShift('Manhã')
   }
 
   const [title, description] = views[view]
@@ -531,10 +424,8 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
                     overview: 'Visão geral',
                     measurements: 'Medições',
                     inspections: 'Inspeções',
-                    nonconformities: 'Não conformidades',
-                    lots: 'Controle de lotes',
                     reports: 'Relatórios',
-                    costs: 'Custos e desperdício',
+                    costs: 'Estimativa de material',
                   }[key]}
                 </button>
               ))}
@@ -688,8 +579,16 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
                     </p>
                   </div>
 
-                  <select aria-label="Medição" value="massa" disabled>
-                    <option value="massa">Massa</option>
+                  <select
+                    aria-label="Medição"
+                    value={campoMedicao}
+                    onChange={event => setCampoMedicao(event.target.value)}
+                  >
+                    {medicoesApi.map(medicao => (
+                      <option key={medicao.campo} value={medicao.campo}>
+                        {medicao.nome}
+                      </option>
+                    ))}
                   </select>
                 </header>
 
@@ -911,195 +810,12 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
             </section>
           )}
 
-          {/* NÃO CONFORMIDADES */}
-          {view === 'nonconformities' && (
-            <>
-              <section className="panel">
-                <h2>Registrar não conformidade</h2>
-                <p className="muted">
-                  Informe o defeito encontrado durante a inspeção.
-                </p>
-
-                <form className="defect-form" onSubmit={registerNonconformity}>
-                  <label>
-                    Tipo de defeito
-                    <select
-                      value={defect}
-                      onChange={(e) => setDefect(e.target.value)}
-                      required
-                    >
-                      <option value="">Selecione o defeito</option>
-                      <option value="Vazamento">Vazamento</option>
-                      <option value="Deformação">Deformação</option>
-                      <option value="Trinca">Trinca</option>
-                      <option value="Espessura irregular">Espessura irregular</option>
-                      <option value="Problema no gargalo">Problema no gargalo</option>
-                      <option value="Problema no fundo">Problema no fundo</option>
-                      <option value="Outro">Outro</option>
-                    </select>
-                  </label>
-
-                  <label>
-                    Linha de produção
-                    <select
-                      value={defectLine}
-                      onChange={(e) => setDefectLine(e.target.value)}
-                    >
-                      {lines.map((item) => (
-                        <option key={item} value={item}>{item}</option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label>
-                    Turno
-                    <select
-                      value={defectShift}
-                      onChange={(e) => setDefectShift(e.target.value)}
-                    >
-                      {shifts.map((item) => (
-                        <option key={item} value={item}>{item}</option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className="description-field">
-                    Descrição do problema
-                    <textarea
-                      value={defectDescription}
-                      onChange={(e) => setDefectDescription(e.target.value)}
-                      placeholder="Descreva o defeito encontrado..."
-                      required
-                    />
-                  </label>
-
-                  <button className="primary" type="submit">
-                    + Registrar defeito
-                  </button>
-                </form>
-              </section>
-
-              <section className="panel">
-                <header className="panel-header">
-                  <div>
-                    <h2>Registros de não conformidade</h2>
-                    <p className="muted">
-                      Defeitos registrados durante as inspeções.
-                    </p>
-                  </div>
-                  <span className="tag">
-                    {visibleNonconformities.length} registros
-                  </span>
-                </header>
-
-                <div className="scroll">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Data</th>
-                        <th>Defeito</th>
-                        <th>Linha</th>
-                        <th>Turno</th>
-                        <th>Descrição</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {visibleNonconformities.length ? (
-                        visibleNonconformities.map((item) => (
-                          <tr key={item.id}>
-                            <td>{shortDate(item.date)}</td>
-                            <td>
-                              <span className="status error">{item.defect}</span>
-                            </td>
-                            <td>{item.line}</td>
-                            <td>{item.shift}</td>
-                            <td>{item.description}</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="5">
-                            Nenhuma não conformidade registrada neste período.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            </>
-          )}
-
-          {/* CONTROLE DE LOTES */}
-          {view === 'lots' && (
-            <section className="panel">
-              <header className="panel-header">
-                <div>
-                  <h2>Lotes de produção</h2>
-                  <p className="muted">
-                    Acompanhe a produção por data, linha e turno.
-                  </p>
-                </div>
-                <span className="tag">
-                  {visibleProduction.length} registros
-                </span>
-              </header>
-
-              <div className="scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Identificação do lote</th>
-                      <th>Data</th>
-                      <th>Linha</th>
-                      <th>Turno</th>
-                      <th>Consumo PET</th>
-                      <th>Descarte</th>
-                      <th>Situação</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {visibleProduction.length ? (
-                      [...visibleProduction]
-                        .sort((a, b) => b.date.localeCompare(a.date))
-                        .map((row) => (
-                          <tr key={`${row.date}-${row.shift}-${row.line}`}>
-                            <td>
-                              LOTE-{row.date.replaceAll('-', '')}-{row.group + 1}
-                            </td>
-                            <td>{shortDate(row.date)}</td>
-                            <td>{row.line}</td>
-                            <td>{row.shift}</td>
-                            <td>{format(row.consumed)} kg</td>
-                            <td>{format(row.discarded)} kg</td>
-                            <td>
-                              <span className={`status ${row.discarded > 1 ? 'warn' : ''}`}>
-                                {row.discarded > 1 ? 'Atenção' : 'Em produção'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))
-                    ) : (
-                      <tr>
-                        <td colSpan="7">
-                          Nenhum lote encontrado para os filtros.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )}
-
           {/* RELATÓRIOS */}
           {view === 'reports' && (
             <>
               <section className="cards">
                 <div className="card">
-                  Total de medições
+                  Total de garrafas
                   <strong>{reportTotal}</strong>
                 </div>
 
@@ -1122,7 +838,7 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
               <section className="panel">
                 <h2>Resumo de qualidade</h2>
                 <p className="muted">
-                  Resultados considerando o período, turno e linha selecionados.
+                  Resultados considerando período, turno, linha e conformidade selecionados.
                 </p>
 
                 <div className="report-list">
@@ -1150,51 +866,50 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
                   </div>
 
                   <div>
-                    <span>Não conformidades registradas</span>
-                    <strong>{visibleNonconformities.length}</strong>
-                  </div>
-
-                  <div>
-                    <span>PET consumido</span>
-                    <strong>{format(consumed)} kg</strong>
-                  </div>
-
-                  <div>
-                    <span>PET descartado</span>
-                    <strong>{format(discarded)} kg</strong>
+                    <span>Massa das garrafas inspecionadas</span>
+                    <strong>{format(massaKg, 3)} kg</strong>
                   </div>
                 </div>
               </section>
             </>
           )}
 
-          {/* DETALHES DE CUSTOS */}
+          {/* ESTIMATIVA DE MATERIAL */}
           {view === 'costs' && (
             <section className="panel cost-detail">
-              <h2>Como os valores são calculados</h2>
-
+              <h2>Estimativa de material das inspeções</h2>
+              <label htmlFor="precoKg">Preço do PET por kg em reais</label>
+              <input
+                id="precoKg"
+                type="number"
+                min="0"
+                step="0.01"
+                value={precoKg}
+                onChange={event => setPrecoKg(event.target.value)}
+                required
+              />
+              {!precoValido && (
+                <p role="alert">Informe um preço maior ou igual a zero.</p>
+              )}
               <p>
-                {!consumed
-                  ? 'Sem dados de produção para este recorte.'
-                  : `${format(consumed)} kg consumidos × ${brl(petPrice)} por kg. Desse total, ${format(discarded)} kg foram descartados.`}
+                Somamos massa_g das garrafas retornadas pela API e dividimos
+                por 1.000 para obter quilogramas. O custo estimado corresponde
+                a essa massa multiplicada pelo preço informado.
               </p>
-
-              <p className="muted">
-                A simulação usa o preço fixo de R$ 8,40 por kg de PET.
-                O gasto com material descartado já está incluído no
-                gasto total com PET.
+              <p>
+                Toda garrafa com status Reprovado é considerada descartada.
+                O custo desperdiçado estimado corresponde à massa dessas
+                garrafas em kg multiplicada pelo preço informado.
+                Esse valor já faz parte do custo estimado do material.
               </p>
-
               <p className="muted">
-                Os custos usam o período, o turno e a linha selecionados.
-                O filtro de conformidade se aplica às medições e
-                inspeções, pois os custos representam a produção.
+                A estimativa corresponde às garrafas inspecionadas no período,
+                turno, linha e conformidade selecionados.
               </p>
             </section>
           )}
-
           <footer>
-            Qualiflow · Dados simulados para demonstração
+            Qualiflow · Inspeções consultadas na API
           </footer>
         </main>
       </div>
