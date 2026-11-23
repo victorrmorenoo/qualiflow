@@ -1195,3 +1195,352 @@
 .cost-detail #precoKg:user-invalid {
   border-color: #ec4899;
 }
+
+.session-status {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.session-status button {
+  padding: 10px 18px;
+  border: 1px solid #9b5cff;
+  border-radius: 8px;
+  background: #17152c;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.session-status button:focus-visible {
+  outline: 2px solid #c084fc;
+  outline-offset: 3px;
+}
+
+.session-loading {
+  gap: 14px;
+  background: radial-gradient(ellipse at 50% 40%, #9b5cff14, transparent 65%), var(--bg);
+}
+
+.session-brand {
+  margin-bottom: 18px;
+  color: var(--purple-light);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.session-spinner {
+  width: 46px;
+  height: 46px;
+  margin-bottom: 10px;
+  border: 3px solid var(--border);
+  border-top-color: var(--purple-light);
+  border-right-color: var(--purple);
+  border-radius: 50%;
+  animation: session-spin 900ms linear infinite;
+}
+
+.session-loading h1 {
+  color: var(--text);
+  font-size: clamp(1.2rem, 4vw, 1.6rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.session-loading p {
+  max-width: 32ch;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+@keyframes session-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session-spinner { animation: none; }
+}
+
+/* Ajustes de layout para telas estreitas e janelas de pouca altura. */
+.login > *,
+.top-left,
+.top .actions,
+.tools label,
+.panel-header > *,
+.report-list > div {
+  min-width: 0;
+}
+
+.top {
+  flex-wrap: wrap;
+}
+
+.top > .actions {
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.dashboard button,
+.modal button,
+.modal input,
+.modal select {
+  min-height: 44px;
+}
+
+.scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.modal-overlay {
+  overflow-y: auto;
+}
+
+.modal {
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+.modal input,
+.modal select {
+  font: inherit;
+  font-size: 16px;
+}
+
+.report-list > div {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 810px) {
+  .login aside {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sidebar nav button {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 600px) {
+  .top {
+    position: relative;
+    gap: 12px;
+  }
+
+  .top > .actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    margin-left: 0;
+  }
+
+  .top > .actions .tag {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .top > .actions .primary {
+    padding: 10px;
+    white-space: normal;
+  }
+
+  .tools label {
+    min-width: 0;
+  }
+
+  .tools input,
+  .tools select,
+  .panel-header select,
+  .cost-detail #precoKg {
+    min-width: 0;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .plot {
+    min-height: 200px;
+  }
+
+  .key {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .key i {
+    flex-shrink: 0;
+  }
+
+  .modal-overlay {
+    padding: 12px;
+  }
+
+  .modal {
+    max-height: calc(100dvh - 24px);
+  }
+
+  .modal h2 {
+    font-size: 21px;
+    margin-bottom: 16px;
+  }
+
+  .modal-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .modal-buttons button {
+    min-width: 0;
+    padding: 11px 8px;
+  }
+}
+
+@media (max-width: 600px) {
+  .top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .top-left {
+    width: auto;
+  }
+
+  .top-left > .actions {
+    gap: 8px;
+  }
+
+  .top .brand {
+    font-size: 18px;
+  }
+
+  .top .brand svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .top > .actions {
+    display: flex;
+    width: auto;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .top > .actions .tag {
+    padding: 6px 9px;
+    font-size: 11px;
+  }
+
+  .top > .actions .btn-sair {
+    padding: 8px 12px;
+  }
+
+  .top:has(> .actions .primary) {
+    grid-template-columns: 1fr;
+  }
+
+  .top:has(> .actions .primary) > .actions {
+    display: grid;
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .top:has(> .actions .primary) > .actions .tag {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+  }
+
+  .top:has(> .actions .primary) > .actions .btn-sair {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .top:has(> .actions .primary) > .actions .primary {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+  }
+}
+
+@media (max-width: 380px) {
+  .top:not(:has(> .actions .primary)) {
+    grid-template-columns: 1fr;
+  }
+
+  .top:not(:has(> .actions .primary)) > .actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .top,
+  .top:has(> .actions .primary),
+  .top:not(:has(> .actions .primary)) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .top-left {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .top > .actions,
+  .top:has(> .actions .primary) > .actions,
+  .top:not(:has(> .actions .primary)) > .actions {
+    display: contents;
+  }
+
+  .top > .actions .tag,
+  .top:has(> .actions .primary) > .actions .tag {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    align-self: center;
+    white-space: nowrap;
+  }
+
+  .top > .actions .btn-sair,
+  .top:has(> .actions .primary) > .actions .btn-sair {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+  }
+
+  .top > .actions .primary,
+  .top:has(> .actions .primary) > .actions .primary {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .top:not(:has(> .actions .primary)) > .actions .btn-sair {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    justify-self: stretch;
+  }
+}
