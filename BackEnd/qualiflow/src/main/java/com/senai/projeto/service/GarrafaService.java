@@ -2,6 +2,7 @@ package com.senai.projeto.service;
 
 import com.senai.projeto.enums.LinhaSopro;
 import com.senai.projeto.enums.Periodo;
+import com.senai.projeto.enums.StatusQualidade;
 import com.senai.projeto.enums.Turno;
 import com.senai.projeto.model.Garrafa;
 import com.senai.projeto.repository.GarrafaRepository;
@@ -22,7 +23,7 @@ public class GarrafaService {
         this.repository = repository;
     }
 
-    public List<Garrafa> listar(Turno turno, LinhaSopro linha, Periodo periodo, LocalDate dataInicio, LocalDate dataFim) {
+    public List<Garrafa> listar(Turno turno, LinhaSopro linha, StatusQualidade status, Periodo periodo, LocalDate dataInicio, LocalDate dataFim) {
         LocalDateTime inicio = null;
         LocalDateTime fim = null;
 
@@ -51,7 +52,7 @@ public class GarrafaService {
             fim = hoje.plusDays(1).atStartOfDay();
         }
 
-        return repository.buscarComFiltros(turno, linha, inicio, fim);
+        return repository.buscarComFiltros(turno, linha, status, inicio, fim);
     }
 
 
