@@ -34,8 +34,7 @@ function Login({ onEntrar }) {
         </h1>
 
         <p>
-          Inspeção de garrafas PET de 2 litros na Planta 2
-          responsável pelo sopro e pela moldagem.
+          Controle de qualidade e acompanhamento das inspeções de garrafas PET de 2 litros.
         </p>
 
         <svg className="art" viewBox="0 0 390 170">

@@ -431,7 +431,7 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
               ))}
             </nav>
 
-            <small>Planta 2 · Linha PET 2 L</small>
+            <small>Garrafas PET de 2 L</small>
           </aside>
         )}
 
@@ -440,15 +440,11 @@ function Dashboard({ perfil, onSair, onCadastrar }) {
             <p role="status">Carregando garrafas...</p>
           ) : erroDados ? (
             <p role="alert">{erroDados}</p>
-          ) : (
-            <p role="status">
-              {garrafas.length} garrafas recebidas da API.
-            </p>
-          )}
+          ) : null}
           <div className="heading">
             <div>
               <div className="eyebrow">
-                Planta 2 · Sopro e moldagem
+                Controle de qualidade de garrafas PET
               </div>
               <h1>{title}</h1>
               <p className="muted">{description}</p>
